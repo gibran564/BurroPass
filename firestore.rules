@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasRole(r) {
+      return isSignedIn() && request.auth.token.role == r;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || hasRole('admin'));
+      allow write: if hasRole('admin');
+    }
+
+    match /boletos/{ticketId} {
+      allow read: if isSignedIn();
+      allow create: if hasRole('estudiante');
+      allow update: if hasRole('sociedad_alumnos') || hasRole('cafeteria') || hasRole('admin');
+    }
+
+    match /escaneos/{scanId} {
+      allow read: if hasRole('sociedad_alumnos') || hasRole('admin');
+      allow create: if hasRole('sociedad_alumnos') || hasRole('cafeteria') || hasRole('admin');
+      allow update, delete: if false;
+    }
+
+    match /anuncios/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole('admin');
+    }
+
+    match /config/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasRole('admin');
+    }
+  }
+}
